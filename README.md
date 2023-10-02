@@ -1,4 +1,4 @@
-# Jenkins CI/CD Implementation README
+# Jenkins Project README
 
 This README provides an overview of the Jenkins CI/CD Implementation project and its key components. The project focuses on setting up Jenkins for continuous integration and delivery (CI/CD) to automate the build, testing, and deployment processes.
 
