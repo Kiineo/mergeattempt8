@@ -19,7 +19,7 @@ This README provides an overview of the Jenkins CI/CD pipeline used for automati
     ```groovy
     stage('Fetch code'){
       steps {
-        git branch: 'docker', url: 'https://github.com/devopshydclub/vprofile-project.git'
+        git branch: 'docker', url: 'https://github.com/Kiineo/vprofile-project.git'
       }
     }
     ```
