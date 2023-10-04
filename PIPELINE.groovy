@@ -4,52 +4,52 @@ pipeline {
 	    maven "MAVEN3"
 	    jdk "OracleJDK8"
 	}
-    stages{
-        stage('Fetch code') {
-          steps{
-              git branch: 'vp-rem', url:'https://github.com/devopshydclub/vprofile-repo.git'
-          }  
-        }
 
-        stage('Build') {
-            steps {
-                sh 'mvn clean install -DskipTests'
-            }
-            post {
-                success {
-                    echo "Now Archiving."
-                    archiveArtifacts artifacts: '**/*.war'
-                }
-            }
-        }
-        stage('Test'){
-            steps {
-                sh 'mvn test'
-            }
+    environment {
+        registryCredential = 'ecr:us-east-1:awscreds'
+        appRegistry = "476536518300.dkr.ecr.us-east-1.amazonaws.com/vprofileappimg"
+        vprofileRegistry = "https://476536518300.dkr.ecr.us-east-1.amazonaws.com"
+    }
+  stages {
+    stage('Fetch code'){
+      steps {
+        git branch: 'docker', url: 'https://github.com/devopshydclub/vprofile-project.git'
+      }
+    }
 
-        }
 
-        stage('Checkstyle Analysis'){
+    stage('Test'){
+      steps {
+        sh 'mvn test'
+      }
+    }
+
+    stage ('CODE ANALYSIS WITH CHECKSTYLE'){
             steps {
                 sh 'mvn checkstyle:checkstyle'
             }
+            post {
+                success {
+                    echo 'Generated Analysis Result'
+                }
+            }
         }
 
-        stage('Sonar Analysis') {
+        stage('build && SonarQube analysis') {
             environment {
-                scannerHome = tool 'sonar4.7'
-            }
+             scannerHome = tool 'sonar4.7'
+          }
             steps {
-               withSonarQubeEnv('sonar') {
-                   sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile \
-                   -Dsonar.projectName=vprofile \
+                withSonarQubeEnv('sonar') {
+                 sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile \
+                   -Dsonar.projectName=vprofile-repo \
                    -Dsonar.projectVersion=1.0 \
                    -Dsonar.sources=src/ \
                    -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
                    -Dsonar.junit.reportsPath=target/surefire-reports/ \
                    -Dsonar.jacoco.reportsPath=target/jacoco.exec \
                    -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml'''
-              }
+                }
             }
         }
 
@@ -63,27 +63,27 @@ pipeline {
             }
         }
 
-        stage("UploadArtifact"){
-            steps{
-                nexusArtifactUploader(
-                  nexusVersion: 'nexus3',
-                  protocol: 'http',
-                  nexusUrl: '172.31.63.24:8081',
-                  groupId: 'QA',
-                  version: "${env.BUILD_ID}-${env.BUILD_TIMESTAMP}",
-                  repository: 'vprofile-repo',
-                  credentialsId: 'nexuslogin',
-                  artifacts: [
-                    [artifactId: 'vproapp',
-                     classifier: '',
-                     file: 'target/vprofile-v2.war',
-                     type: 'war']
-    ]
- )
-            }
-        }
+    stage('Build App Image') {
+       steps {
+       
+         script {
+                dockerImage = docker.build( appRegistry + ":$BUILD_NUMBER", "./Docker-files/app/multistage/")
+             }
 
-
-
+     }
+    
     }
+
+    stage('Upload App Image') {
+          steps{
+            script {
+              docker.withRegistry( vprofileRegistry, registryCredential ) {
+                dockerImage.push("$BUILD_NUMBER")
+                dockerImage.push('latest')
+              }
+            }
+          }
+     }
+
+  }
 }
