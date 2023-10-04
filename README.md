@@ -1,105 +1,108 @@
-# Jenkins Project README
+# Jenkins CI/CD Pipeline README
 
-This README provides an overview of the Jenkins CI/CD Implementation project and its key components. The project focuses on setting up Jenkins for continuous integration and delivery (CI/CD) to automate the build, testing, and deployment processes.
+This README provides an overview of the Jenkins CI/CD pipeline used for automating various stages of your project's development lifecycle.
 
-## Project Components
+## Pipeline Components
 
-### EC2 Instance for Jenkins Server
+### 1. Creation of the Jenkins EC2 Instance
 
-- An EC2 instance is provisioned and managed to host the Jenkins Server.
-- This enables continuous integration and delivery for the project.
+- The Jenkins CI/CD pipeline runs on an EC2 instance.
+- This instance is provisioned and managed to host the Jenkins Server.
 
-### Amazon Elastic Container Registry (ECR)
+### 2. Fetching the Code from GitHub
 
-- An Amazon Elastic Container Registry (ECR) is established to efficiently store deployable application images.
-- ECR ensures seamless deployments and version control of containerized applications.
-
-### Jenkins Pipeline
-
-The Jenkins Pipeline is the heart of our CI/CD implementation. It automates various stages of the development lifecycle, ensuring consistent and reliable builds, tests, and deployments.
-
-#### Event 1: Creation of Jenkins EC2 Instance
-
-- An EC2 instance is provisioned and managed to host the Jenkins Server.
-- This enables continuous integration and delivery for the project.
-
-#### Event 2: Fetching the Code from GitHub
-
-- The project code is fetched from the GitHub repository using the following configuration:
+- The project's source code is fetched from the GitHub repository using the following configuration:
 
     ```groovy
-    stage('Fetch code') {
-        steps{
-            git branch: 'vp-rem', url:'https://github.com/devopshydclub/vprofile-repo.git'
-        }  
+    stage('Fetch code'){
+      steps {
+        git branch: 'docker', url: 'https://github.com/devopshydclub/vprofile-project.git'
+      }
     }
     ```
 
-#### Event 3: Unit Testing (Maven)
+### 3. Unit Testing (Maven)
 
-- Unit tests are executed using Maven with the following command:
+- The pipeline performs unit tests using Maven with the following command:
 
     ```groovy
     stage('Test'){
-        steps {
-            sh 'mvn test'
-        }
+      steps {
+        sh 'mvn test'
+      }
     }
     ```
 
-#### Event 4: Checkstyle (Maven)
+### 4. Checkstyle (Maven)
 
 - Code style and quality checks are performed using Checkstyle with the following command:
 
     ```groovy
-    stage('Checkstyle Analysis'){
+    stage ('CODE ANALYSIS WITH CHECKSTYLE'){
         steps {
             sh 'mvn checkstyle:checkstyle'
+        }
+        post {
+            success {
+                echo 'Generated Analysis Result'
+            }
         }
     }
     ```
 
-#### Event 5: Code Analysis (SonarQube)
+### 5. Code Analysis (SonarQube)
 
 - Code analysis is performed using SonarQube with the following configuration:
 
     ```groovy
-    stage('Sonar Analysis') {
+    stage('build && SonarQube analysis') {
         environment {
             scannerHome = tool 'sonar4.7'
         }
         steps {
-           withSonarQubeEnv('sonar') {
-               sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile \
-               -Dsonar.projectName=vprofile \
-               -Dsonar.projectVersion=1.0 \
-               -Dsonar.sources=src/ \
-               -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
-               -Dsonar.junit.reportsPath=target/surefire-reports/ \
-               -Dsonar.jacoco.reportsPath=target/jacoco.exec \
-               -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml'''
-          }
+            withSonarQubeEnv('sonar') {
+                sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile \
+                -Dsonar.projectName=vprofile-repo \
+                -Dsonar.projectVersion=1.0 \
+                -Dsonar.sources=src/ \
+                -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
+                -Dsonar.junit.reportsPath=target/surefire-reports/ \
+                -Dsonar.jacoco.reportsPath=target/jacoco.exec \
+                -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml'''
+            }
         }
     }
     ```
 
-#### Event 6: Docker Build
+### 6. Docker Build
 
-- Docker images for the application are built and managed using Docker Pipeline and AWS ECR.
+- The pipeline builds a Docker image for your application using the Dockerfile located in `./Docker-files/app/multistage/`.
 
-#### Event 7: Pushing the Code to Amazon ECR
+    ```groovy
+    stage('Build App Image') {
+        steps {
+            script {
+                dockerImage = docker.build( appRegistry + ":$BUILD_NUMBER", "./Docker-files/app/multistage/")
+            }
+        }
+    }
+    ```
 
-- The Docker images are pushed to Amazon Elastic Container Registry (ECR) for efficient storage and version control.
+### 7. Pushing the Code to Amazon ECR
 
-#### Event 8: Quality Gate
+- The Docker image is pushed to Amazon Elastic Container Registry (ECR) for efficient storage and version control.
 
-- A quality gate ensures the build meets predefined quality criteria. It waits for the quality gate to pass before proceeding.
+    ```groovy
+    stage('Upload App Image') {
+        steps{
+            script {
+                docker.withRegistry( vprofileRegistry, registryCredential ) {
+                    dockerImage.push("$BUILD_NUMBER")
+                    dockerImage.push('latest')
+                }
+            }
+        }
+    }
+    ```
 
-#### Event 9: Upload Artifact
-
-- Artifacts, such as the application WAR file, are uploaded to Nexus Repository Manager for further distribution.
-
-### Dockerization
-
-- The application is orchestrated for Dockerization.
-- Docker Pipeline and AWS ECR are used for image creation and management.
+This Jenkins CI/CD pipeline automates your project's build, testing, code analysis, Docker image creation, and deployment to ECR, ensuring a streamlined development and deployment process.
