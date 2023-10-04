@@ -13,7 +13,7 @@ pipeline {
   stages {
     stage('Fetch code'){
       steps {
-        git branch: 'docker', url: 'https://github.com/devopshydclub/vprofile-project.git'
+        git branch: 'docker', url: 'https://github.com/Kiineo/vprofile-project.git'
       }
     }
 
