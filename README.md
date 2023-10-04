@@ -2,6 +2,9 @@
 
 This README provides an overview of the Jenkins CI/CD pipeline used for automating various stages of your project's development lifecycle.
 
+## Project Overview
+![JenkinsProject](https://github.com/Kiineo/Jenkins-VProfile-Project/assets/103956412/a7d16aff-cb04-4f92-9ad9-2cfb9a89a672)
+
 ## Pipeline Components
 
 ### 1. Creation of the Jenkins EC2 Instance
