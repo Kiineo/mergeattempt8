@@ -108,4 +108,4 @@ This README provides an overview of the Jenkins CI/CD pipeline used for automati
     }
     ```
 
-This Jenkins CI/CD pipeline automates the project's build, testing, code analysis, Docker image creation, and deployment to ECR, ensuring a streamlined development and deployment process.
+This Jenkins CI/CD pipeline automates your project's build, testing, code analysis, Docker image creation, and deployment to ECR, ensuring a streamlined development and deployment process.
